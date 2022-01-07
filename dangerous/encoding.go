@@ -1,12 +1,16 @@
 package dangerous
 
 import (
+	"bytes"
+	"compress/zlib"
 	"crypto/hmac"
 	"encoding/base64"
+	"errors"
 	"hash"
+	"io"
 )
 
-func encodeBase64(data []byte) []byte {
+func base64Encode(data []byte) []byte {
 	encoded := make([]byte, base64.RawURLEncoding.EncodedLen(len(data)))
 	base64.RawURLEncoding.Encode(encoded, data)
 	return encoded
@@ -49,4 +53,44 @@ func int64ToBytes(i int64) []byte {
 		i = i >> 8
 	}
 	return o
+}
+
+func zlibCompress(data []byte) ([]byte, error) {
+	b := new(bytes.Buffer)
+	w := zlib.NewWriter(b)
+	if _, err := w.Write(data); err != nil {
+		return nil, err
+	}
+	_ = w.Close()
+	return b.Bytes(), nil
+}
+
+func zlibDecompress(compressedData []byte) ([]byte, error) {
+	b := bytes.NewBuffer(compressedData)
+	r, err := zlib.NewReader(b)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	var o []byte
+	for {
+		x := make([]byte, 512)
+		n, err := r.Read(x)
+		o = append(o, x...)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		if n < 512 {
+			break
+		}
+	}
+
+	o = bytes.TrimRight(o, "\x00") // Because we read in 512 byte blocks, we
+	// can end up with loads of blank data that breaks unmarshaling
+
+	return o, nil
 }

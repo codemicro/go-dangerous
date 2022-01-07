@@ -47,12 +47,6 @@ func NewSigner(opts ...SignerOption) (*Signer, error) {
 
 	if len(s.Keys) == 0 {
 		return nil, ErrNoKeys
-	} else {
-		for _, key := range s.Keys {
-			if len(key) != 32 {
-				return nil, ErrInvalidKeyLength
-			}
-		}
 	}
 
 	return s, nil
@@ -111,7 +105,7 @@ func (s *Signer) getNewSignature(data []byte) ([]byte, error) {
 	}
 	signingKey := s.deriveSigningKey(baseKey)
 
-	base64HMACValue := encodeBase64(
+	base64HMACValue := base64Encode(
 		generateHMACHash(data, signingKey, s.DigestHash),
 	)
 
@@ -182,7 +176,7 @@ func NewTimestampSigner(opts ...SignerOption) (*TimestampSigner, error) {
 
 func (t *TimestampSigner) Sign(data []byte) ([]byte, error) {
 	data = append(data, t.Separator)
-	data = append(data, encodeBase64(
+	data = append(data, base64Encode(
 		int64ToBytes(
 			time.Now().Unix(),
 		),
