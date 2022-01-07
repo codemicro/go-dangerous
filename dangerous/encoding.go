@@ -33,3 +33,20 @@ func generateHMACHash(data, key []byte, hc HashConstructor) []byte {
 		return hmac.New(hc, key)
 	})
 }
+
+func bytesToInt64(b []byte) int64 {
+	var n int64
+	for _, x := range b {
+		n = (n << 8) | int64(x)
+	}
+	return n
+}
+
+func int64ToBytes(i int64) []byte {
+	var o []byte
+	for i > 0 {
+		o = append([]byte{byte(i & 0b11111111)}, o...)
+		i = i >> 8
+	}
+	return o
+}
